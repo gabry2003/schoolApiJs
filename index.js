@@ -473,59 +473,64 @@ class DidUpApi {
      * @returns {Object[]} Array di lementi della bacheca
      */
     async bacheca (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
-        const dateFinoAOggi = (() => {
-            const mese = new Date().getMonth();
-            const anno = new Date().getFullYear();
-            const steps = 1;
+        try {
+            const dateFinoAOggi = (() => {
+                const mese = new Date().getMonth();
+                const anno = new Date().getFullYear();
+                const steps = 1;
 
-            let startDate;
+                let startDate;
 
-            if(mese >= 0 && mese <= 5) {   // Se e' da gennaio a giugno
-                startDate = `${anno - 1}-09-01`;    // Comincia dall'1 settembre dell'anno scorso
-            }else { // Altrimenti
-                startDate = `${anno}-09-01`;    // Comincia dall'1 settembre di quest'anno
-            }
+                if(mese >= 0 && mese <= 5) {   // Se e' da gennaio a giugno
+                    startDate = `${anno - 1}-09-01`;    // Comincia dall'1 settembre dell'anno scorso
+                }else { // Altrimenti
+                    startDate = `${anno}-09-01`;    // Comincia dall'1 settembre di quest'anno
+                }
 
-            endDate = new Date().toISOString().slice(0, 10);
+                const endDate = new Date().toISOString().slice(0, 10);
 
-            const dateArray = [];
-            let currentDate = new Date(startDate);
-            
-            while (currentDate <= new Date(endDate)) {
-                dateArray.push(new Date(currentDate).toISOString().slice(0, 10));
-                // Use UTC date to prevent problems with time zones and DST
-                currentDate.setUTCDate(currentDate.getUTCDate() + steps);
-            }
-            
-            return dateArray;
-        })().reverse(); 
+                const dateArray = [];
+                let currentDate = new Date(startDate);
+                
+                while (currentDate <= new Date(endDate)) {
+                    dateArray.push(new Date(currentDate).toISOString().slice(0, 10));
+                    // Use UTC date to prevent problems with time zones and DST
+                    currentDate.setUTCDate(currentDate.getUTCDate() + steps);
+                }
+                
+                return dateArray;
+            })().reverse(); 
 
-        let elsBacheca = [];
-        for(let i = 0;i < dateFinoAOggi.length;i++) {   // Per ogni data
-            const cosaOggi = await this.chiamata(token, codice, sceltaAccount, 'oggi', dateFinoAOggi[i], prgAlunno, prgScuola, prgScheda);
-            let elBacheca = [];
-            
-            let bacheca = cosaOggi.dati.filter((x) => {
-                return x.tipo == 'BAC';
-            });
-
-            bacheca.forEach((bac) => {
-                elBacheca.push({
-                    oggetto: bac.dati.desOggetto,
-                    messaggio: bac.dati.desMessaggio,
-                    url: bac.dati.desUrl,
-                    data: dateFinoAOggi[i]
+            let elsBacheca = [];
+            for(let i = 0;i < dateFinoAOggi.length;i++) {   // Per ogni data
+                const cosaOggi = await this.chiamata(token, codice, sceltaAccount, 'oggi', dateFinoAOggi[i], prgAlunno, prgScuola, prgScheda);
+                let elBacheca = [];
+                
+                let bacheca = cosaOggi.dati.filter((x) => {
+                    return x.tipo == 'BAC';
                 });
-            });
-            
-            if(elBacheca.length > 0) {
-                elBacheca.forEach((el) => {
-                    elsBacheca.push(el);
+
+                bacheca.forEach((bac) => {
+                    elBacheca.push({
+                        oggetto: bac.dati.desOggetto,
+                        messaggio: bac.dati.desMessaggio,
+                        url: bac.dati.desUrl,
+                        data: dateFinoAOggi[i]
+                    });
                 });
-            }
-        };
-        
-        return elsBacheca;
+                
+                if(elBacheca.length > 0) {
+                    elBacheca.forEach((el) => {
+                        elsBacheca.push(el);
+                    });
+                }
+            };
+            
+            return elsBacheca;
+        } catch(e) {
+            console.error(e);
+            return [];
+        }
     }
 }
 

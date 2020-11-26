@@ -1,6 +1,6 @@
 {
   "name": "didupapi",
-  "version": "1.0.0",
+  "version": "1.0.1.1",
   "description": "Api non ufficiali per il registro elettronico Argo ScuolaNext",
   "main": "index.js",
   "scripts": {
