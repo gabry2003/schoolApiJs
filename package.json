@@ -1,0 +1,30 @@
+{
+  "name": "didupapi",
+  "version": "1.0.0",
+  "description": "Api non ufficiali per il registro elettronico Argo ScuolaNext",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gabry2003/didUpApi.git"
+  },
+  "keywords": [
+    "api",
+    "scuola",
+    "school",
+    "registro",
+    "argo"
+  ],
+  "author": "Gabriele Princiotta <gabriprinciott@gmail.com> (https://instagram.com/gabri.princiott)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gabry2003/didUpApi/issues"
+  },
+  "homepage": "https://github.com/gabry2003/didUpApi#readme",
+  "dependencies": {
+    "console-error": "0.0.4",
+    "node-fetch": "^2.6.1"
+  }
+}
