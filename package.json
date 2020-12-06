@@ -1,28 +1,29 @@
 {
-  "name": "didupapi",
-  "version": "1.0.1-beta1",
-  "description": "Api non ufficiali per il registro elettronico Argo ScuolaNext",
+  "name": "schoolapijs",
+  "version": "1.0.1-beta2",
+  "description": "Modulo Node.js che si collega alle API di diversi registri elettronici",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gabry2003/didUpApi.git"
+    "url": "https://github.com/gabry2003/schoolApiJs.git"
   },
   "keywords": [
     "api",
     "scuola",
     "school",
     "registro",
-    "argo"
+    "argo",
+    "axios"
   ],
   "author": "Gabriele Princiotta <gabriprinciott@gmail.com> (https://instagram.com/gabri.princiott)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/gabry2003/didUpApi/issues"
+    "url": "https://github.com/gabry2003/schoolApiJs/issues"
   },
-  "homepage": "https://github.com/gabry2003/didUpApi#readme",
+  "homepage": "https://github.com/gabry2003/schoolApiJs#readme",
   "dependencies": {
     "console-error": "0.0.4",
     "node-fetch": "^2.6.1"
