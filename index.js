@@ -1,58 +1,45 @@
 /**
- * Api Non ufficiali di Argo ScuolaNext
+ * Modulo che si collega a diversi registri elettronici
+ * - Argo ScuolaNext
+ * - Axios
  * 
  * @author Gabriele Princiotta
  * @version 1.0
- * @module didupapi
+ * @module schoolapijs
  * @requires console-error
 */
 require('console-error');
+require('./utils/Array/Prototypes/average');
 
 const fetch = require('node-fetch');
+const config = require('./config/config');
 
-class DidUpApi {
+class SchoolApi {
     /**
      * Costruttore
+     * 
+     * @param {string} registro Registro scelto
+     * @param {string} token Token utente
+     * @param {string} codice Codice scuola
+     * @param {string} sceltaAccount Scelta utente
+     * @param {string} prgAlunno 
+     * @param {string} prgScuola 
+     * @param {string} prgScheda 
      */
-    constructor() {
-        /**
-         * @type string
-         */
-        this.baseURL = `https://www.portaleargo.it/famiglia/api/rest`;
-        this.produttoreSoftware = 'ARGO Software s.r.l. - Ragusa';
-        /**
-         * @type string
-         */
-        this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36';
-        /**
-         * @type string
-         */
-        this.keyApp = 'ax6542sdru3217t4eesd9';
-        /**
-         * @type string
-         */
-        this.appCode = 'APF';
-        /**
-         * @type string
-         */
-        this.version = '2.1.0';
-        /**
-         Informazioni sull'alunno ricavate dalla chiamate
-        */
-       this.gettedInfo = {
-            codice: null,
-            token: null,
-            prgAlunno: null,
-            prgScuola: null,
-            prgScheda: null
-        };
+    constructor(registro, token, codice, sceltaAccount, prgAlunno, prgScuola, prgScheda) {
+        // Informazioni dell'utente
+        this.registro = registro;
+        this.token = token;
+        this.codice = codice;
+        this.sceltaAccount = sceltaAccount;
+        this.prgAlunno = prgAlunno;
+        this.prgScuola = prgScuola;
+        this.prgScheda = prgScheda;
     }
     
     /**
      * Effettua il login
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @async
      * @method
      * @param {string} cod Codice scuola dell'utente
@@ -60,170 +47,88 @@ class DidUpApi {
      * @param {string} pwd Password dell'utente
      */
     async login(cod, user, pwd) {
-        const loginProm = await fetch(`${this.baseURL}/login`, {
-            method: 'GET',
-            headers: {
-                'x-key-app': this.keyApp,
-                'x-version': this.version,
-                'user-agent': this.userAgent,
-                'x-cod-min': cod,
-                'x-user-id': user,
-                'x-pwd': pwd,
-                'x-produttore-software': this.produttoreSoftware,
-                'x-app-code': this.appCode,
-            }
-        }).catch((error) => {
-            console.error('Impossibile effettuare la chiamata per il login!');
-            console.error(error);
-        });
-
-        try {
-            const log = await loginProm.json();
-            this.gettedInfo.token = log.token;
-            this.gettedInfo.codice = cod;
-            return log.token;
-        } catch (e) {
-            console.error('Impossibile effettuare il login!');
-            console.error(e);
-            return null;
+        switch(registro) {  // In base al registro scelto
+            case 'argo':
+                const loginProm = await fetch(config.argo.loginURL, {
+                    method: 'GET',
+                    headers: config.argo.headers(cod, user, pwd)
+                }).catch((error) => {
+                    console.error('Impossibile effettuare la chiamata per il login!');
+                    console.error(error);
+                });
+        
+                try {
+                    const log = await loginProm.json();
+                    this.token = log.token;
+                    this.codice = cod;
+                    return log.token;
+                } catch (e) {
+                    console.error('Impossibile effettuare il login!');
+                    console.error(e);
+                    return null;
+                }
+            default:
+                return null;
         }
     }
     /**
      * Salva le informazioni prese dalle chiamate
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
      * @param {*} prgScuola
      * @param {*} prgScheda
      * @param {*} prgAlunno
      */
     async setInfo(prgScuola, prgScheda, prgAlunno) {
-        this.gettedInfo.prgScuola = prgScuola;
-        this.gettedInfo.prgScheda = prgScheda;
-        this.gettedInfo.prgAlunno = prgAlunno;
+        this.prgScuola = prgScuola;
+        this.prgScheda = prgScheda;
+        this.prgAlunno = prgAlunno;
     }
     /**
      * Prende le informazioni dell'alunno
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @async
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
-     * @param {boolean} set Se salvare le informazioni
+     * @param {boolean} [set=true] Se salvare le informazioni
      */
-    async info(token, codice, sceltaAccount, set) {
-        token = typeof token !== 'undefined' && token !== null ? token : this.gettedInfo.token;
-        codice = typeof codice !== 'undefined' && codice !== null ? codice : this.gettedInfo.codice;
-        set = typeof set !== 'undefined' ? set : true;
-        const headers = {
-            'x-key-app': this.keyApp,
-            "x-version": this.version,
-            "x-cod-min": codice,
-            "user-agent": this.userAgent,
-            "x-produttore-software": this.produttoreSoftware,
-            "x-app-code": this.appCode,
-            "x-auth-token": token
-        };
-        const infoProm = await fetch(`${this.baseURL}/schede`, {
-            method: 'GET',
-            headers: headers
-        }).catch((error) => {
-            console.error('Impossibile effettuare la chiamate per recuperare le info!');
-            console.error(error);
-        });
+    async info(set = true) {
+        switch(registro) {  // In base al registro scelto
+            case 'argo':
+                data = typeof data !== 'undefined' ? `?datGiorno=${data}` : '';
+                if (typeof prgAlunno == 'undefined' || typeof prgScuola == 'undefined' || typeof prgScheda == 'undefined') {    // Se non ci sono i dati li prendo
+                    const info = await this.info();
+                    if (info.length == 0) { // Se non riesce a prendere le info
+                        return false;
+                    }
+                }
 
-        try {
-            const info = await infoProm.json();
-            if (set) {
-                this.setInfo(info[sceltaAccount].prgScuola, info[sceltaAccount].prgScheda, info[sceltaAccount].prgAlunno);
-            }
-            return info;
-        } catch (error) {
-            console.error(error);
-            return [];
-        }
-    }
-    /**
-     * Esegue una chiamata ad Argo
-     * 
-     * @author Gabriele Princiotta
-     * @version 1.0
-     * @async
-     * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
-     * @param {string} method Servizio da chiamare
-     * @param {string} data Data da passare al servizio
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
-     */
-    async chiamata(token, codice, sceltaAccount, method, data, prgAlunno, prgScuola, prgScheda) {
-        data = typeof data !== 'undefined' ? `?datGiorno=${data}` : "";
-        token = typeof token !== 'undefined' && token !== null ? token : this.gettedInfo.token;
-        codice = typeof codice !== 'undefined' && codice !== null ? codice : this.gettedInfo.codice;
-        if (typeof prgAlunno == 'undefined' || typeof prgScuola == 'undefined' || typeof prgScheda == 'undefined') {
-            const info = await this.info(token, codice, sceltaAccount);
-            if (info.length == 0) { // Se non riesce a prendere le info
+                const methodProm = await fetch(`${this.baseURL}/${method}${data}`, {
+                    method: 'GET',
+                    headers: config.argo.headers(this.codice, null, null, this.token, this.prgScuola, this.prgScheda, this.prgAlunno)
+                }).catch((error) => {
+                    console.error(error);
+                });
+
+                try {
+                    return await methodProm.json();
+                } catch (e) {
+                    console.error('Impossibile effettuare la chiamata!');
+                    console.error(e);
+                    return false;
+                }
+            default:
                 return false;
-            }
-        }
-        prgAlunno = typeof prgAlunno !== 'undefined' && prgAlunno !== null ? prgAlunno : this.gettedInfo.prgAlunno;
-        prgScuola = typeof prgScuola !== 'undefined' && prgScuola !== null ? prgScuola : this.gettedInfo.prgScuola;
-        prgScheda = typeof prgScheda !== 'undefined' && prgScheda !== null ? prgScheda : this.gettedInfo.prgScheda;
-        const headers = {
-            'x-key-app': this.keyApp,
-            "x-version": this.version,
-            "user-agent": this.userAgent,
-            "x-cod-min": codice,
-            "x-produttore-software": this.produttoreSoftware,
-            "x-app-code": this.appCode,
-            "x-auth-token": token,
-            "x-prg-scuola": prgScuola,
-            "x-prg-scheda": prgScheda,
-            "x-prg-alunno": prgAlunno
-        };
-        const methodProm = await fetch(`${this.baseURL}/${method}${data}`, {
-            method: 'GET',
-            headers: headers
-        }).catch((error) => {
-            console.error(error);
-        });
-
-        try {
-            const methods = await methodProm.json();
-            return methods;
-        } catch (e) {
-            console.error('Impossibile effettuare la chiamata!');
-            console.error(e);
-            return false;
         }
     }
     /**
-     * Prende i voti dal registro Argo
+     * Prende i voti dal registro
      *
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Array di voti giornalieri
      */
-    async voti(token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async voti(data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'votigiornalieri', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -232,25 +137,74 @@ class DidUpApi {
         }
     }
     /**
-     * Prende cosa e' successo oggi dal registro Argo
-     * 
-     * @author Gabriele Princiotta
-     * @version 1.0
+     * Prende la media dei voti dal registro
+     *
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
+     * @returns {*} Array di voti giornalieri
+     */
+    async mediaVoti(data) {
+        try {
+            const voti = await this.voti(token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda);
+
+            if(voti.length == 0) return 0;  // Se non ci sono voti torno direttamente 0 di media
+
+            // Prendo tutte le materie
+            const materie = voti.map((x) => {
+                return x.desMateria;
+            }).filter((value, index, self) => {
+                return self.indexOf(value) === index;
+            });
+
+            // Media di ogni materia
+            let medie = [];
+
+            materie.forEach((materia) => {
+                let orali = voti.filter((x) => {
+                    return x.desMateria == materia && x.codVotoPratico == 'N' && x.decValore !== null && x.codVoto !== 'A' && x.codVoto !== 'IMP';
+                }).map((x) => {
+                    return x.decValore;
+                });
+
+                let pratici = voti.filter((x) => {
+                    return x.desMateria == materia && x.codVotoPratico == 'P' && x.decValore !== null && x.codVoto !== 'A' && x.codVoto !== 'IMP';
+                }).map((x) => {
+                    return x.decValore;
+                });
+
+                let scritti = voti.filter((x) => {
+                    return x.desMateria == materia && x.codVotoPratico == 'S' && x.decValore !== null && x.codVoto !== 'A' && x.codVoto !== 'IMP';
+                }).map((x) => {
+                    return x.decValore;
+                });
+
+                const mediaOrali = orali.average();
+                const mediaPratici = pratici.average();
+                const mediaScritti = scritti.average();
+                
+                const media = [mediaOrali, mediaPratici, mediaScritti].filter((x) => {
+                    return x >= 0;
+                }).average();
+
+                if(media >= 0) medie.push(media);
+
+            });
+
+            return medie.average();
+        } catch(e) {
+            console.error(e);
+            return [];
+        }
+    }
+    /**
+     * Prende cosa e' successo oggi dal registro
+     * 
+     * @method
+     * @param {string} data Data di cui prendere i dati
      * @returns {*} Cosa è successo oggi
      */
-    async oggi (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async oggi (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'oggi', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -259,25 +213,14 @@ class DidUpApi {
         }
     }
     /**
-     * Prende le assenze dal registro Argo
+     * Prende le assenze dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco di assenze
      */
-    async assenze (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async assenze (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'assenze', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -286,25 +229,14 @@ class DidUpApi {
         }
     }
     /**
-     * Prende le note disciplinari dal registro Argo
+     * Prende le note disciplinari dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco di note
      */
-    async note (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async note (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'notedisciplinari', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -313,43 +245,24 @@ class DidUpApi {
         }
     }
     /**
-     * Prende i voti dello scrutinio dal registro Argo
+     * Prende i voti dello scrutinio dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco dei voti scrutinio
      */
-    async votiscrutinio (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async votiscrutinio (data) {
         return this.chiamata(token, codice, sceltaAccount, 'votiscrutinio', data, prgAlunno, prgScuola, prgScheda);
     }
     /**
-     * Prende i compiti dal registro Argo
+     * Prende i compiti dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco di campi
      */
-    async compiti (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async compiti (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'compiti', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -358,25 +271,14 @@ class DidUpApi {
         }
     }
     /**
-     * Prende gli argomenti dal registro Argo
+     * Prende gli argomenti dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco degli argomenti
      */
-    async argomenti (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async argomenti (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'argomenti', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -385,25 +287,14 @@ class DidUpApi {
         }
     }
     /**
-     * Prende i promemoria dal registro Argo
+     * Prende i promemoria dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco dei promemoria
      */
-    async promemoria (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async promemoria (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'promemoria', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -412,43 +303,24 @@ class DidUpApi {
         }
     }
     /**
-     * Prende i docenti dal registro Argo
+     * Prende i docenti dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Elenco di tutti i docenti 
      */
-    async docenti (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async docenti (data) {
         return this.chiamata(token, codice, sceltaAccount, 'docenticlasse', data, prgAlunno, prgScuola, prgScheda);
     }
     /**
-     * Prende l'orario dal registro Argo
+     * Prende l'orario dal registro
      * 
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @method
-     * @param {string} token Token dell'utente
-     * @param {string} codice Codice scuola dell'utente
-     * @param {number} sceltaAccount Scelta account dell'utente
      * @param {string} data Data di cui prendere i dati
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {*} Orario attualmente registrato
      */
-    async orario (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async orario (data) {
         try {
-            /**
-             * @type Object[]
-             */
             const dati = (await this.chiamata(token, codice, sceltaAccount, 'orario', data, prgAlunno, prgScuola, prgScheda)).dati;
             return dati;
         } catch(e) {
@@ -459,21 +331,17 @@ class DidUpApi {
     /**
      * Prende gli elementi della bacheca dal registro Argo
      *
-     * @author Gabriele Princiotta
-     * @version 1.0
      * @async
      * @method
-     * @param {string} token
-     * @param {string} codice
-     * @param {number} sceltaAccount
      * @param {string} data
-     * @param {*} prgAlunno
-     * @param {*} prgScuola
-     * @param {*} prgScheda
      * @returns {Object[]} Array di lementi della bacheca
      */
-    async bacheca (token, codice, sceltaAccount, data, prgAlunno, prgScuola, prgScheda) {
+    async bacheca (data) {
         try {
+            if(data !== null && typeof data !== 'undefined') {  // Se ha scelto di prendere gli elementi di una certa data
+                return await this.chiamata('oggi', data);
+            }
+
             const dateFinoAOggi = (() => {
                 const mese = new Date().getMonth();
                 const anno = new Date().getFullYear();
@@ -503,7 +371,7 @@ class DidUpApi {
 
             let elsBacheca = [];
             for(let i = 0;i < dateFinoAOggi.length;i++) {   // Per ogni data
-                const cosaOggi = await this.chiamata(token, codice, sceltaAccount, 'oggi', dateFinoAOggi[i], prgAlunno, prgScuola, prgScheda);
+                const cosaOggi = await this.chiamata('oggi', dateFinoAOggi[i]);
                 let elBacheca = [];
                 
                 let bacheca = cosaOggi.dati.filter((x) => {
@@ -534,4 +402,6 @@ class DidUpApi {
     }
 }
 
-module.exports = new DidUpApi();
+module.exports = (registro, token, codice, sceltaAccount, prgAlunno, prgScuola, prgScheda) => {
+    return new SchoolApi(registro, token, codice, sceltaAccount, prgAlunno, prgScuola, prgScheda);
+};
